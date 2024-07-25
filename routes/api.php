@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,4 +17,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+Route::prefix('goods')->group(function () {
+    Route::post('{id}', [ProductController::class, 'show'])->where('id', '[0-9]+');
+    Route::post('filter', [ProductController::class, 'getByFilter']);
 });
