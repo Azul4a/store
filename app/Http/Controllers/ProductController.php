@@ -61,6 +61,8 @@ class ProductController extends Controller
             'price.from' => 'nullable|integer|required_with:price.to',
             'price.to' => 'nullable|integer|required_with:price.from',
             'manufacturer' => 'nullable|string',
+            'fields' => 'nullable|array',
+            'fields.*' => 'required_if:fields,*|in:' . \implode(',', DB::getSchemaBuilder()->getColumnListing('products')),
         ]);
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 422);
@@ -92,8 +94,10 @@ class ProductController extends Controller
                 ->where('ws.warehouse_id', $data['warehouse_id']);
         }
 
+        $query->orderBy('p.id', 'ASC');
+
         $products = $query->paginate(14);
-        $formattedProducts = $products->map(function ($product) {
+        $formattedProducts = $products->map(function ($product) use ($data) {
             $stocks = DB::select('
                 SELECT ws.id, ws.stock AS count, w.name
                 FROM warehouse_stocks ws
@@ -111,7 +115,7 @@ class ProductController extends Controller
                 'product_id' => $product->id,
             ]);
 
-            return [
+            $toReturn = [
                 'id' => $product->id,
                 'category_id' => $product->category_id,
                 'sku' => $product->sku,
@@ -127,6 +131,7 @@ class ProductController extends Controller
                 'created_at' => $product->created_at,
                 'updated_at' => $product->updated_at,
             ];
+            return empty($data['fields'] ?? []) ? $toReturn : \array_intersect_key(\array_flip($data['fields']), $toReturn);
         });
 
         return response()->json([
